@@ -121,7 +121,5 @@ def _needs(text: str) -> list[Need]:
 def _missing(indicators: FieldIndicators) -> list[str]:
     fields = FieldIndicators.model_fields
     return [
-        fields[name].alias or name
-        for name, value in indicators
-        if value is None or value == []
+        fields[name].alias or name for name, value in indicators if value is None or value == []
     ]
