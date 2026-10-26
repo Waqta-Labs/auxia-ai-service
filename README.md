@@ -158,6 +158,23 @@ Response `200`:
 
 Without `text`, or with an empty one: `400 VALIDATION_ERROR`.
 
+How `rules-v1` reads the text (`app/services/nlp.py`):
+
+- The text is compared in lowercase and without accents.
+- Counts are numbers written with digits followed by the group they count:
+  "35 familias", "140 personas" (or "habitantes", "damnificados"), "40 niños"
+  (or "menores"), "15 adultos mayores" (or "ancianos"), "6 personas con
+  discapacidad". Thousands separators are accepted ("1.200"). When a group is
+  mentioned several times, the largest number is kept. Numbers written with
+  words are not recognized.
+- `damageLevel` comes from a dictionary of terms and the highest level found
+  wins: for example "daños leves" is `LOW`, "grietas" or "inundadas" is
+  `MODERATE`, "derrumbe" or "colapsadas" is `SEVERE`, and "colapso total" or
+  "fallecidos" is `CRITICAL`.
+- `needs` comes from another dictionary: drinking water (not flood water),
+  food, tents or shelter, hygiene kits and medicine. `OTHER` is never
+  extracted.
+
 ### 2. Urgency score (US-04, US-05, TS-02)
 
 `POST /api/v1/urgency-scores`
