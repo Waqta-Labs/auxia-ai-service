@@ -1,0 +1,13 @@
+# Tool configuration only. Dependencies are pinned in requirements*.txt and
+# the service version lives in app/core/config.py.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
