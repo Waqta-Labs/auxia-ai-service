@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.api import health, v1
 from app.core.config import VERSION, get_settings
 from app.core.errors import register_error_handlers
+from app.core.openapi import remove_default_validation_response
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(v1.router)
+    remove_default_validation_response(app)
     return app
 
 
