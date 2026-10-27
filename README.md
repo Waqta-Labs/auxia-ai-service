@@ -308,7 +308,7 @@ Response `200`:
     {
       "zoneId": "5b0c2f6e-8a1d-4c47-9f3e-2d6a1b7c9e01",
       "items": [
-        { "resourceId": "c7f1e2d3-4b5a-4c6d-8e9f-0a1b2c3d4e03", "quantity": 340 },
+        { "resourceId": "c7f1e2d3-4b5a-4c6d-8e9f-0a1b2c3d4e03", "quantity": 329 },
         { "resourceId": "d8a2f3e4-5c6b-4d7e-9f0a-1b2c3d4e5f04", "quantity": 140 }
       ],
       "coverage": "PARTIAL"
@@ -316,12 +316,12 @@ Response `200`:
     {
       "zoneId": "a3e9d4c2-1f6b-4e8a-b5d7-0c2e4f6a8b02",
       "items": [
-        { "resourceId": "c7f1e2d3-4b5a-4c6d-8e9f-0a1b2c3d4e03", "quantity": 160 }
+        { "resourceId": "c7f1e2d3-4b5a-4c6d-8e9f-0a1b2c3d4e03", "quantity": 171 }
       ],
       "coverage": "PARTIAL"
     }
   ],
-  "justification": "Inventory split in proportion to each zone's urgency score, capped by its needs and by the available stock.",
+  "justification": "Each resource was split among the zones that need it in proportion to their urgency score, capped by each zone's demand (people affected times a ration per person). 0 of 2 zones are fully covered. The others are left partially or totally unserved for lack of inventory.",
   "modelVersion": "rules-v1"
 }
 ```
@@ -332,7 +332,32 @@ Response `200`:
 - `unit` is `UNIT`, `KG`, `LITER` or `KIT`, as in the inventory of
   `auxia-backend`.
 
-Without zones (`"zones": []`): `400 VALIDATION_ERROR`.
+Without zones (`"zones": []`), with a repeated zone or resource, or with a
+negative quantity: `400 VALIDATION_ERROR`.
+
+How `rules-v1` splits the inventory (`app/services/distribution.py`):
+
+- The demand of a zone for each category in its `needs` is `peopleAffected`
+  times a ration per person, in the unit of the resource, rounded up:
+
+  | Category | Ration per person | Basis |
+  |---|---|---|
+  | `WATER` | 15 | liters a day (Sphere standard) |
+  | `FOOD` | 1 | one ration or kit |
+  | `SHELTER` | 0.2 | one tent per family of 5 |
+  | `HYGIENE` | 0.2 | one kit per family of 5 |
+  | `MEDICINE` | 0.1 | one kit per 10 people |
+  | `OTHER` | 1 | one unit |
+
+- Each resource, in the order of `inventory`, is split among the zones that
+  still need its category in proportion to their `score`, capped by what each
+  zone still needs. What a zone cannot take goes to the others. Quantities are
+  whole units; when fewer units than zones are left, they go to the most
+  urgent zone. Stock that no zone needs is not allocated.
+- `coverage` is `FULL` when every need of the zone is covered (a zone without
+  needs is `FULL`), `NONE` when it receives nothing, and `PARTIAL` otherwise.
+- In the example the zones need 2100 and 1350 liters: the 500 liters go 329
+  and 171 by score, and the first zone gets its 140 kg of food.
 
 ### 4. Brigade suggestion (Resource Management)
 
