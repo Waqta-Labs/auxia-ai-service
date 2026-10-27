@@ -204,12 +204,12 @@ Response `200`:
 
 ```json
 {
-  "score": 78.4,
-  "priorityLevel": "CRITICAL",
+  "score": 54.9,
+  "priorityLevel": "HIGH",
   "topFeatures": [
     { "feature": "damageLevel", "contribution": 30.0 },
-    { "feature": "vulnerablePopulation", "contribution": 21.5 },
-    { "feature": "peopleAffected", "contribution": 16.3 }
+    { "feature": "needs", "contribution": 11.3 },
+    { "feature": "vulnerablePopulation", "contribution": 7.9 }
   ],
   "modelVersion": "rules-v1"
 }
@@ -235,6 +235,27 @@ in `details`.
   ]
 }
 ```
+
+Without `zonePopulation`, with a value of 0 or less, or with a negative
+count: `400 VALIDATION_ERROR`.
+
+How `rules-v1` calculates the score (`app/services/urgency.py`): a weighted
+sum of four variables, each normalized from 0 to 1. The weights add up to 100,
+so each contribution is already in score points.
+
+| Variable | Weight | Normalized value |
+|---|---|---|
+| `damageLevel` | 40 | `LOW` 0.25, `MODERATE` 0.5, `SEVERE` 0.75, `CRITICAL` 1 |
+| `peopleAffected` | 25 | `peopleAffected / zonePopulation`, at most 1 |
+| `vulnerablePopulation` | 20 | `(children + elderlyPeople + disabledPeople) / peopleAffected`, at most 1 |
+| `needs` | 15 | distinct needs / 4, at most 1 |
+
+- A vulnerable group that is `null` counts as 0.
+- `priorityLevel` comes from the rounded score: 75 or more is `CRITICAL`, 50
+  or more `HIGH`, 25 or more `MEDIUM`, and anything lower `LOW`.
+- `topFeatures` has the three largest contributions that are not zero.
+- In the example: 30 (`SEVERE`) + 5.8 (140 of 600 people) + 7.9 (55 of 140
+  people are vulnerable) + 11.3 (3 needs) = 54.9, which is `HIGH`.
 
 ### 3. Distribution recommendation (US-11, TS-04)
 
