@@ -113,3 +113,16 @@ def _coverage(pending: dict[Need, int], received: dict[UUID, int]) -> Coverage:
     if all(missing == 0 for missing in pending.values()):
         return Coverage.FULL
     return Coverage.PARTIAL if received else Coverage.NONE
+
+
+def justify(distributions: list[ZoneDistribution]) -> str:
+    """Explains the recommendation to the authority that has to approve it."""
+    covered = sum(1 for distribution in distributions if distribution.coverage == Coverage.FULL)
+    text = (
+        "Each resource was split among the zones that need it in proportion to their urgency"
+        " score, capped by each zone's demand (people affected times a ration per person)."
+        f" {covered} of {len(distributions)} zones are fully covered."
+    )
+    if covered < len(distributions):
+        text += " The others are left partially or totally unserved for lack of inventory."
+    return text

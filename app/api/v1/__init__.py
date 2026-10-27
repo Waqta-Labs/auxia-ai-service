@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from app.api.v1 import field_reports, urgency_scores
+from app.api.v1 import distribution_recommendations, field_reports, urgency_scores
 from app.core.security import require_api_key
 from app.schemas.common import ErrorResponse
 
@@ -16,3 +16,4 @@ router = APIRouter(
 )
 router.include_router(field_reports.router)
 router.include_router(urgency_scores.router)
+router.include_router(distribution_recommendations.router)
