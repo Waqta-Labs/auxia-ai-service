@@ -331,9 +331,14 @@ Response `200`:
   scenario 2).
 - `unit` is `UNIT`, `KG`, `LITER` or `KIT`, as in the inventory of
   `auxia-backend`.
+- `alreadyAllocated` is optional: for each category, the units that earlier
+  approved plans already give the zone, such as
+  `[{ "category": "FOOD", "quantity": 140 }]`. They are taken from the
+  demand of the zone, so a zone that already has what it needs is `FULL` and
+  receives nothing. Without it, nothing is taken.
 
-Without zones (`"zones": []`), with a repeated zone or resource, or with a
-negative quantity: `400 VALIDATION_ERROR`.
+Without zones (`"zones": []`), with a repeated zone, resource or allocated
+category, or with a negative quantity: `400 VALIDATION_ERROR`.
 
 How `rules-v1` splits the inventory (`app/services/distribution.py`):
 
@@ -349,6 +354,8 @@ How `rules-v1` splits the inventory (`app/services/distribution.py`):
   | `MEDICINE` | 0.1 | one kit per 10 people |
   | `OTHER` | 1 | one unit |
 
+- What `alreadyAllocated` gives a category is taken from its demand, never
+  below 0.
 - Each resource, in the order of `inventory`, is split among the zones that
   still need its category in proportion to their `score`, capped by what each
   zone still needs. What a zone cannot take goes to the others. Quantities are
