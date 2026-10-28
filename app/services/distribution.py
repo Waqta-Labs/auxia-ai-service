@@ -12,6 +12,9 @@ a ration per person, in the unit of the resource, rounded up:
 | MEDICINE | 0.1 | one kit per 10 people |
 | OTHER | 1 | one unit |
 
+What earlier approved plans already give the zone (alreadyAllocated) is taken
+from that demand, so a zone only receives what it still lacks.
+
 Each resource, in the order of the inventory, is split among the zones that
 still need its category, in proportion to their urgency score and capped by
 what they still need. What a zone cannot take goes to the others, until the
@@ -49,10 +52,15 @@ class ZoneDistribution:
 
 
 def demand_of(zone: PrioritizedZone) -> dict[Need, int]:
-    """What the zone needs of each category, in whole units."""
+    """What the zone still needs of each category, in whole units, never below 0."""
+    allocated = {item.category: item.quantity for item in zone.already_allocated}
     # The tolerance keeps float noise, such as 90 × 0.2 = 18.000000000000004, from rounding up.
     return {
-        need: math.ceil(zone.people_affected * RATIONS[need] - 1e-9) for need in set(zone.needs)
+        need: max(
+            0,
+            math.ceil(zone.people_affected * RATIONS[need] - 1e-9) - allocated.get(need, 0),
+        )
+        for need in set(zone.needs)
     }
 
 

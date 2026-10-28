@@ -26,12 +26,27 @@ class Coverage(StrEnum):
     NONE = "NONE"
 
 
+class AllocatedCategory(CamelModel):
+    category: Need
+    quantity: int = Field(ge=0)
+    """Units of the category the zone already has from approved plans."""
+
+
 class PrioritizedZone(CamelModel):
     zone_id: UUID
     score: float = Field(ge=0, le=100)
     """Urgency score of the zone."""
     people_affected: int = Field(ge=0)
     needs: list[Need] = Field(default_factory=list)
+    already_allocated: list[AllocatedCategory] = Field(default_factory=list)
+    """What earlier approved plans already give the zone; it is taken from its demand."""
+
+    @field_validator("already_allocated")
+    @classmethod
+    def categories_are_unique(cls, allocated: list[AllocatedCategory]) -> list[AllocatedCategory]:
+        if len({item.category for item in allocated}) != len(allocated):
+            raise ValueError("each category appears only once")
+        return allocated
 
 
 class AvailableResource(CamelModel):
