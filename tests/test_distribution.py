@@ -1,7 +1,13 @@
 import random
 from uuid import UUID, uuid4
 
-from app.schemas.distributions import AvailableResource, Coverage, PrioritizedZone, UnitOfMeasure
+from app.schemas.distributions import (
+    AllocatedCategory,
+    AvailableResource,
+    Coverage,
+    PrioritizedZone,
+    UnitOfMeasure,
+)
 from app.schemas.indicators import Need
 from app.services.distribution import demand_of, justify, recommend_distribution
 
@@ -131,6 +137,46 @@ def test_zone_without_needs_is_covered_and_receives_nothing() -> None:
     result = by_zone([zone(ZONE_A, 90, 100)], [resource(FOOD, Need.FOOD, 100)])
 
     assert result[ZONE_A].quantities == {}
+    assert result[ZONE_A].coverage == Coverage.FULL
+
+
+def allocated(zone_with_needs: PrioritizedZone, **quantities: int) -> PrioritizedZone:
+    return zone_with_needs.model_copy(
+        update={
+            "already_allocated": [
+                AllocatedCategory(category=Need(category), quantity=quantity)
+                for category, quantity in quantities.items()
+            ]
+        }
+    )
+
+
+def test_what_a_zone_already_has_is_taken_from_its_demand() -> None:
+    base = zone(ZONE_A, 78.4, 140, Need.WATER, Need.FOOD)
+
+    assert demand_of(allocated(base, WATER=100)) == {Need.WATER: 2000, Need.FOOD: 140}
+    assert demand_of(allocated(base, WATER=2100, FOOD=500)) == {Need.WATER: 0, Need.FOOD: 0}
+
+
+def test_zone_whose_needs_are_already_covered_is_full_and_receives_nothing() -> None:
+    covered = allocated(zone(ZONE_A, 78.4, 140, Need.WATER, Need.FOOD), WATER=2100, FOOD=140)
+
+    result = by_zone(
+        [covered, zone(ZONE_B, 41.0, 90, Need.WATER)],
+        [resource(WATER, Need.WATER, 500), resource(FOOD, Need.FOOD, 300)],
+    )
+
+    assert result[ZONE_A].quantities == {}
+    assert result[ZONE_A].coverage == Coverage.FULL
+    assert result[ZONE_B].quantities == {WATER: 500}
+
+
+def test_zone_partly_covered_only_receives_what_it_still_lacks() -> None:
+    partly = allocated(zone(ZONE_A, 78.4, 140, Need.WATER, Need.FOOD), FOOD=100)
+
+    result = by_zone([partly], [resource(WATER, Need.WATER, 5000), resource(FOOD, Need.FOOD, 300)])
+
+    assert result[ZONE_A].quantities == {WATER: 2100, FOOD: 40}
     assert result[ZONE_A].coverage == Coverage.FULL
 
 
