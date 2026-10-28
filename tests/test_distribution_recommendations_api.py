@@ -75,6 +75,30 @@ def test_repeated_zone_returns_bad_request(client: TestClient) -> None:
     assert response.json()["details"][0]["field"] == "zones"
 
 
+def test_zone_receives_only_what_it_still_lacks(client: TestClient) -> None:
+    zone_a = {
+        **README_REQUEST["zones"][0],
+        "alreadyAllocated": [{"category": "FOOD", "quantity": 140}],
+    }
+    request = {**README_REQUEST, "zones": [zone_a, README_REQUEST["zones"][1]]}
+
+    response = client.post(URL, json=request, headers=HEADERS)
+
+    assert response.status_code == 200
+    allocations = {item["zoneId"]: item for item in response.json()["allocations"]}
+    assert {item["resourceId"] for item in allocations[ZONE_A]["items"]} == {WATER}
+
+
+def test_repeated_allocated_category_returns_bad_request(client: TestClient) -> None:
+    repeated = [{"category": "FOOD", "quantity": 1}, {"category": "FOOD", "quantity": 2}]
+    zone_a = {**README_REQUEST["zones"][0], "alreadyAllocated": repeated}
+
+    response = client.post(URL, json={"zones": [zone_a]}, headers=HEADERS)
+
+    assert response.status_code == 400
+    assert response.json()["details"][0]["field"] == "zones[0].alreadyAllocated"
+
+
 def test_negative_quantity_returns_bad_request(client: TestClient) -> None:
     inventory = [{**README_REQUEST["inventory"][0], "availableQuantity": -1}]
 
