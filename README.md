@@ -371,7 +371,8 @@ How `rules-v1` splits the inventory (`app/services/distribution.py`):
 `POST /api/v1/brigade-assignments/suggestions`
 
 Suggests the available brigade closest to the zone (haversine distance).
-`brigades` must have at least one brigade.
+`brigades` must have at least one brigade, each one only once. Between two
+brigades at the same distance, the first one of the request wins.
 
 Request:
 
